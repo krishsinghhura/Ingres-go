@@ -14,9 +14,12 @@ import (
 )
 
 func main() {
+	// Try loading local .env first, then fallback to root .env
+	_ = godotenv.Load(".env")
 	if err := godotenv.Load("../../.env"); err != nil {
-		log.Println("no .env file loaded, using system env")
+		log.Println("Note: root .env not found, using local or system env")
 	}
+
 
 	port := 9000
 	if p, err := strconv.Atoi(getEnv("AGENT_SERVICE_PORT", "9000")); err == nil {
