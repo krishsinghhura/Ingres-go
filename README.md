@@ -1,4 +1,4 @@
-Ingres Hydro AI Project
+Ingres AI
 
 Introduction
 
