@@ -16,15 +16,13 @@ type Config struct {
 	DBName          string
 	DatabaseURL     string
 
-	JWTSecret       string
-	JWTExpiry       time.Duration
-	OpenAIKey       string
-	IngresAPIURL    string
-	IngresAPIKey    string
+	JWTSecret      string
+	JWTExpiry      time.Duration
+	OpenAIKey      string
+	IngresAPIURL   string
+	IngresAPIKey   string
+	AllowedOrigins string
 }
-
-
-
 
 func getEnv(key string, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok && value != "" {
@@ -59,10 +57,11 @@ func LoadConfig() Config {
 		DBName:          getEnv("DB_NAME", "ingres"),
 		DatabaseURL:     getEnv("DATABASE_URL", ""),
 
-		JWTSecret:       getEnv("JWT_SECRET", "secret"),
-		JWTExpiry:       time.Duration(jwtHours) * time.Hour,
-		OpenAIKey:       getEnv("OPENAI_API_KEY", ""),
-		IngresAPIURL:    getEnv("INGRES_API_URL", "https://ingres.iith.ac.in/api/gec/getBusinessDataForUserOpen"),
-		IngresAPIKey:    getEnv("INGRES_API_KEY", ""),
+		JWTSecret:      getEnv("JWT_SECRET", "secret"),
+		JWTExpiry:      time.Duration(jwtHours) * time.Hour,
+		OpenAIKey:      getEnv("OPENAI_API_KEY", ""),
+		IngresAPIURL:   getEnv("INGRES_API_URL", "https://ingres.iith.ac.in/api/gec/getBusinessDataForUserOpen"),
+		IngresAPIKey:   getEnv("INGRES_API_KEY", ""),
+		AllowedOrigins: getEnv("ALLOWED_ORIGINS", "http://localhost:5173, https://ingres-agent.space, http://ingres-agent.space, https://www.ingres-agent.space, http://localhost:3000"),
 	}
 }
