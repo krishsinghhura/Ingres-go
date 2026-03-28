@@ -10,7 +10,7 @@ import (
 )
 
 func SetupRoutes(app *fiber.App, dbConn *gorm.DB, cfg config.Config) {
-	api := app.Group("/")
+	api := app.Group("/api")
 
 	// Auth routes
 	auth := api.Group("/auth")
