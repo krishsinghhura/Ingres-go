@@ -28,6 +28,15 @@ type GetBusinessDataInterpretation struct {
 	Notes             *string  `json:"notes"`
 }
 
+type GetMapBusinessDataInterpretation struct {
+	Intent          string   `json:"intent"`
+	RequestedFields []string `json:"requested_fields"`
+	RelatedFields   []string `json:"related_fields"`
+	Location        *string  `json:"location"`
+	Year            *string  `json:"year"`
+	Message         *string  `json:"message"`
+}
+
 type GetBusinessDataResult struct {
 	Interpretation GetBusinessDataInterpretation `json:"interpretation"`
 	Data           interface{}                   `json:"data"`

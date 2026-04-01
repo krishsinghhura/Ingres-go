@@ -15,45 +15,34 @@ type ToolDefinition struct {
 }
 
 func GetToolsSchema() []ToolDefinition {
-	calculateParams := map[string]interface{}{
-		"type": "object",
-		"properties": map[string]interface{}{
-			"expression": map[string]interface{}{
-				"type":        "string",
-				"description": "The math expression to evaluate (e.g., '25 * 4')",
-			},
-		},
-		"required": []string{"expression"},
-	}
-	paramsJSON, _ := json.Marshal(calculateParams)
+	return []ToolDefinition{}
+}
 
-	return []ToolDefinition{
+func GetGeminiToolsSchema() []GeminiTool {
+	params := map[string]interface{}{
+		"type": "OBJECT",
+		"properties": map[string]interface{}{
+			"location":      map[string]interface{}{"type": "STRING"},
+			"state":         map[string]interface{}{"type": "BOOLEAN"},
+			"previousChats": map[string]interface{}{"type": "ARRAY", "items": map[string]interface{}{"type": "STRING"}},
+			"userQuery":     map[string]interface{}{"type": "STRING"},
+		},
+	}
+	paramsJSON, _ := json.Marshal(params)
+
+	return []GeminiTool{
 		{
-			Type: "function",
-			Function: struct {
-				Name        string          `json:"name"`
-				Description string          `json:"description,omitempty"`
-				Parameters  json.RawMessage `json:"parameters,omitempty"`
-			}{
-				Name:        "calculate",
-				Description: "Evaluate a mathematical expression",
-				Parameters:  paramsJSON,
+			FunctionDeclarations: []GeminiFunctionDeclaration{
+				{
+					Name:        "research",
+					Description: "Do research for a specific location if a new location is mentioned.",
+					Parameters:  paramsJSON,
+				},
 			},
 		},
 	}
 }
 
 func ExecuteTool(name string, arguments string) (string, error) {
-	switch name {
-	case "calculate":
-		var args struct {
-			Expression string `json:"expression"`
-		}
-		if err := json.Unmarshal([]byte(arguments), &args); err != nil {
-			return "", err
-		}
-		return fmt.Sprintf("Result of %s is evaluated internally.", args.Expression), nil
-	default:
-		return "", fmt.Errorf("tool not found: %s", name)
-	}
+	return "", fmt.Errorf("tool not found: %s", name)
 }
