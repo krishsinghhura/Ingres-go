@@ -12,6 +12,7 @@ import (
 
 	"github.com/ingres/ingres-agent-go/internal/prompts"
 	apitypes "github.com/ingres/ingres-agent-go/internal/types"
+	"github.com/ingres/ingres-agent-go/internal/utils"
 )
 
 type GroqProvider struct {
@@ -56,10 +57,10 @@ func (p *GroqProvider) HandleUserQuery(ctx context.Context, userQuery string, pr
 	}
 	messages = append(messages, GroqMessage{Role: "user", Content: userQuery})
 
-	return p.callWithTools(messages)
+	return p.callWithTools(ctx, userQuery, messages)
 }
 
-func (p *GroqProvider) callWithTools(messages []GroqMessage) (string, bool, error) {
+func (p *GroqProvider) callWithTools(ctx context.Context, userQuery string, messages []GroqMessage) (string, bool, error) {
 	fullURL := p.baseURL + "/chat/completions"
 	
 	for i := 0; i < 5; i++ { // Max 5 iterations for tool calls
@@ -104,14 +105,34 @@ func (p *GroqProvider) callWithTools(messages []GroqMessage) (string, bool, erro
 
 		if gResp.Choices[0].FinishReason == "tool_calls" {
 			for _, tc := range msg.ToolCalls {
-				result, err := ExecuteTool(tc.Function.Name, tc.Function.Arguments)
-				if err != nil {
-					result = fmt.Sprintf("Error: %v", err)
+				var resultStr string
+				if tc.Function.Name == "research" {
+					var args map[string]interface{}
+					json.Unmarshal([]byte(tc.Function.Arguments), &args)
+					loc, _ := args["location"].(string)
+					state := utils.IsIndianState(loc)
+
+					fmt.Printf("🔍 Groq requested research with args: %v\n", tc.Function.Arguments)
+					researchResult, err := ExecuteResearchFlow(ctx, p, userQuery, loc, state)
+					if err != nil {
+						resultStr = fmt.Sprintf("Error: %v", err)
+					} else {
+						resultBytes, _ := json.Marshal(researchResult)
+						resultStr = string(resultBytes)
+					}
+				} else {
+					result, err := ExecuteTool(tc.Function.Name, tc.Function.Arguments)
+					if err != nil {
+						resultStr = fmt.Sprintf("Error: %v", err)
+					} else {
+						resultStr = result
+					}
 				}
+
 				messages = append(messages, GroqMessage{
 					Role:    "tool",
 					ToolID:  tc.ID,
-					Content: result,
+					Content: resultStr,
 				})
 			}
 			continue // Go for another round

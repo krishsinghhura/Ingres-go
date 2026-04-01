@@ -15,7 +15,32 @@ type ToolDefinition struct {
 }
 
 func GetToolsSchema() []ToolDefinition {
-	return []ToolDefinition{}
+	return []ToolDefinition{
+		{
+			Type: "function",
+			Function: struct {
+				Name        string          `json:"name"`
+				Description string          `json:"description,omitempty"`
+				Parameters  json.RawMessage `json:"parameters,omitempty"`
+			}{
+				Name:        "research",
+				Description: "Do research for a specific location if a new location is mentioned.",
+				Parameters: json.RawMessage(`{
+					"type": "object",
+					"properties": {
+						"location": { "type": "string" },
+						"state": { "type": "boolean" },
+						"previousChats": { 
+							"type": "array", 
+							"items": { "type": "string" }
+						},
+						"userQuery": { "type": "string" }
+					},
+					"required": ["location", "state", "previousChats", "userQuery"]
+				}`),
+			},
+		},
+	}
 }
 
 func GetGeminiToolsSchema() []GeminiTool {
