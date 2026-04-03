@@ -32,6 +32,10 @@ func SetupRoutes(app *fiber.App, dbConn *gorm.DB, cfg config.Config) {
 
 	// Analytics routes
 	analytics := api.Group("/analytics")
-	analytics.Use(middleware.RequireAuth(cfg))
-	analytics.Post("/analyze", handler.GetAnalyticsForLocation(cfg))
+	analytics.Get("/locations", handler.GetLocations)
+
+	// Protected routes
+	protected := analytics.Group("/")
+	protected.Use(middleware.RequireAuth(cfg))
+	protected.Post("/analyze", handler.GetAnalyticsForLocation(cfg))
 }

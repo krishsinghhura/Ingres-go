@@ -50,3 +50,12 @@ func GetAnalyticsForLocation(cfg config.Config) fiber.Handler {
 		})
 	}
 }
+
+func GetLocations(c *fiber.Ctx) error {
+	res, err := client.FetchLocations()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to fetch locations"})
+	}
+
+	return c.JSON(res)
+}

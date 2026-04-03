@@ -1,415 +1,384 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/hooks/use-toast';
+import { BASE_URL } from '@/config';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell
+} from 'recharts';
 import {
   BarChart3,
-  LineChart,
-  PieChart,
-  TrendingUp,
-  Download,
   RefreshCw,
   Filter,
   Calendar,
-  MapPin
+  MapPin,
+  AlertTriangle,
+  Droplets,
+  Zap,
+  Layers
 } from 'lucide-react';
 
-const regions = [
-  { value: 'all', label: 'All India' },
-  { value: 'raj', label: 'Rajasthan' },
-  { value: 'mah', label: 'Maharashtra' },
-  { value: 'pun', label: 'Punjab' },
-  { value: 'kar', label: 'Karnataka' },
-  { value: 'guj', label: 'Gujarat' },
-];
-
-const indicators = [
-  { value: 'water_table', label: 'Water Table Depth' },
-  { value: 'recharge', label: 'Groundwater Recharge' },
-  { value: 'extraction', label: 'Extraction Rate' },
-  { value: 'quality', label: 'Water Quality Index' },
-];
-
-const chartTypes = [
-  { id: 'line', label: 'Line Chart', icon: LineChart },
-  { id: 'bar', label: 'Bar Chart', icon: BarChart3 },
-  { id: 'pie', label: 'Pie Chart', icon: PieChart },
-];
+const COLORS = ['#10b981', '#f59e0b', '#ef4444', '#6366f1', '#8b5cf6'];
 
 export default function AnalysisPage() {
-  const [selectedRegion, setSelectedRegion] = useState('raj');
-  const [selectedIndicator, setSelectedIndicator] = useState('water_table');
-  const [yearRange, setYearRange] = useState([2015, 2023]);
-  const [chartType, setChartType] = useState('line');
+  const [selectedRegion, setSelectedRegion] = useState('INDIA');
+  const [regions, setRegions] = useState<any[]>([]);
+  const [yearRange, setYearRange] = useState([2023, 2024]);
   const [isLoading, setIsLoading] = useState(false);
-  const [comparisonMode, setComparisonMode] = useState(false);
-  const [comparisonRegion, setComparisonRegion] = useState('mah');
+  const [isRegionsLoading, setIsRegionsLoading] = useState(true);
+  const [analysisData, setAnalysisData] = useState<any>(null);
+  const { toast } = useToast();
+  const token = localStorage.getItem('token');
 
-  const handleAnalyze = () => {
+  useEffect(() => {
+    const fetchRegions = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/analytics/locations`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setRegions(data.locations || []);
+        } else {
+          toast({ title: "Error", description: "Failed to fetch dynamic regions" });
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsRegionsLoading(false);
+      }
+    };
+    fetchRegions();
+  }, []);
+
+  const handleAnalyze = async () => {
+    if (!token) {
+      toast({ title: "Error", description: "Please login to perform analysis" });
+      return;
+    }
+
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const res = await fetch(`${BASE_URL}/analytics/analyze`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          location: selectedRegion,
+          year: `${yearRange[0]}-${yearRange[1]}`
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setAnalysisData(data.analytics);
+        toast({ title: "Analysis Complete", description: `Data fetched for ${selectedRegion}` });
+      } else {
+        toast({ title: "Error", description: data.error || "Failed to fetch analysis" });
+      }
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Error", description: "Network error fetching analysis" });
+    } finally {
       setIsLoading(false);
-    }, 2000);
-  };
-
-  const handleExport = () => {
-    // Simulate export
-    console.log('Exporting analysis...');
-  };
-
-  // Mock data for demonstration
-  const mockData = {
-    timeSeries: [
-      { year: 2015, value: 12.5 },
-      { year: 2016, value: 11.8 },
-      { year: 2017, value: 13.2 },
-      { year: 2018, value: 10.9 },
-      { year: 2019, value: 14.1 },
-      { year: 2020, value: 13.7 },
-      { year: 2021, value: 12.3 },
-      { year: 2022, value: 15.2 },
-      { year: 2023, value: 14.8 },
-    ],
-    categories: {
-      safe: 45,
-      semicritical: 28,
-      critical: 18,
-      overexploited: 9
     }
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="flex items-center justify-between"
+        className="flex flex-col md:flex-row md:items-center justify-between gap-4"
       >
         <div>
-          <h1 className="text-3xl font-bold">Data Analysis</h1>
-          <p className="text-muted-foreground">
-            Explore groundwater trends, patterns, and insights across India
+          <h1 className="text-3xl font-bold tracking-tight">Data Analysis</h1>
+          <p className="text-muted-foreground mt-1">
+            Deep analytical insights powered by AI and INGRES groundwater models.
           </p>
         </div>
         
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-          <Button onClick={handleAnalyze} disabled={isLoading}>
-            {isLoading ? (
-              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <BarChart3 className="h-4 w-4 mr-2" />
-            )}
-            Analyze
-          </Button>
-        </div>
+        <Button onClick={handleAnalyze} disabled={isLoading} size="lg" className="shadow-lg hover:shadow-primary/20 transition-all">
+          {isLoading ? (
+            <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
+          ) : (
+            <BarChart3 className="h-5 w-5 mr-2" />
+          )}
+          {isLoading ? "Analyzing..." : "Generate Analysis"}
+        </Button>
       </motion.div>
 
       {/* Controls */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-      >
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Filter className="h-5 w-5" />
-              <span>Analysis Parameters</span>
-            </CardTitle>
-            <CardDescription>
-              Configure your analysis settings and parameters
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Region Selection */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium flex items-center space-x-2">
-                  <MapPin className="h-4 w-4" />
-                  <span>Region</span>
-                </label>
-                <Select value={selectedRegion} onValueChange={setSelectedRegion}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {regions.map((region) => (
-                      <SelectItem key={region.value} value={region.value}>
-                        {region.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Indicator Selection */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium flex items-center space-x-2">
-                  <TrendingUp className="h-4 w-4" />
-                  <span>Indicator</span>
-                </label>
-                <Select value={selectedIndicator} onValueChange={setSelectedIndicator}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {indicators.map((indicator) => (
-                      <SelectItem key={indicator.value} value={indicator.value}>
-                        {indicator.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Chart Type */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium flex items-center space-x-2">
-                  <BarChart3 className="h-4 w-4" />
-                  <span>Chart Type</span>
-                </label>
-                <div className="flex space-x-1">
-                  {chartTypes.map((type) => (
-                    <Button
-                      key={type.id}
-                      variant={chartType === type.id ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setChartType(type.id)}
-                      className="flex-1"
-                    >
-                      <type.icon className="h-4 w-4" />
-                    </Button>
+      <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-primary" />
+                Region
+              </label>
+              <Select value={selectedRegion} onValueChange={setSelectedRegion} disabled={isRegionsLoading}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder={isRegionsLoading ? "Loading regions..." : "Select Region"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {regions.map((region: any) => (
+                    <SelectItem key={region.value} value={region.value}>
+                      {region.label}
+                    </SelectItem>
                   ))}
-                </div>
-              </div>
+                </SelectContent>
+              </Select>
             </div>
 
-            {/* Year Range Slider */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium flex items-center space-x-2">
-                  <Calendar className="h-4 w-4" />
-                  <span>Year Range</span>
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-primary" />
+                  Time Period
                 </label>
-                <div className="flex items-center space-x-2">
-                  <Badge variant="outline">{yearRange[0]}</Badge>
-                  <span className="text-muted-foreground">to</span>
-                  <Badge variant="outline">{yearRange[1]}</Badge>
-                </div>
+                <Badge variant="secondary" className="font-mono">
+                  {yearRange[0]} - {yearRange[1]}
+                </Badge>
               </div>
               <Slider
                 value={yearRange}
                 onValueChange={setYearRange}
                 max={2025}
-                min={2004}
+                min={2010}
                 step={1}
-                className="w-full"
+                className="py-4"
               />
             </div>
 
-            {/* Comparison Mode Toggle */}
-            <div className="flex items-center justify-between pt-4 border-t border-border">
-              <div>
-                <h4 className="font-medium">Comparison Mode</h4>
-                <p className="text-sm text-muted-foreground">Compare with another region</p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant={comparisonMode ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setComparisonMode(!comparisonMode)}
-                >
-                  {comparisonMode ? 'Enabled' : 'Disabled'}
-                </Button>
-              </div>
+            <div className="flex items-end">
+               <div className="text-xs text-muted-foreground p-3 bg-muted/30 rounded-lg flex items-center gap-2">
+                 <Filter className="h-3 w-3" />
+                 Currently using GEC Assessment Models
+               </div>
             </div>
+          </div>
+        </CardContent>
+      </Card>
 
-            {comparisonMode && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="space-y-2"
-              >
-                <label className="text-sm font-medium">Comparison Region</label>
-                <Select value={comparisonRegion} onValueChange={setComparisonRegion}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {regions.filter(r => r.value !== selectedRegion).map((region) => (
-                      <SelectItem key={region.value} value={region.value}>
-                        {region.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </motion.div>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
+      {/* Results and Insights */}
+      <AnimatePresence mode="wait">
+        {analysisData ? (
+          <motion.div
+            key="results"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="space-y-6"
+          >
+            {/* Top Insights Card - Standardized with Chat Look */}
+            <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+              <CardHeader className="border-b border-primary/10">
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                  AI Intelligence Summary
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="grid md:grid-cols-2 gap-4">
+                  {[
+                    { icon: AlertTriangle, text: analysisData.stress.insight, title: "Risk Level", color: "text-red-500" },
+                    { icon: Droplets, text: analysisData.consumption.insight, title: "Consumption Pattern", color: "text-blue-500" },
+                    { icon: RefreshCw, text: analysisData.recharge.insight, title: "Recharge Dynamics", color: "text-emerald-500" },
+                    { icon: Layers, text: analysisData.disparity.insight, title: "Infrastructure Disparity", color: "text-indigo-500" }
+                  ].map((item, i) => (
+                    <motion.div 
+                      key={i}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: i * 0.1 }}
+                      className="p-4 bg-background/80 backdrop-blur shadow-sm rounded-xl border border-border flex gap-4 hover:border-primary/30 transition-colors"
+                    >
+                      <div className={`p-2 bg-muted rounded-lg h-fit ${item.color}`}>
+                        <item.icon className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sm mb-1">{item.title}</h4>
+                        <p className="text-xs text-muted-foreground leading-relaxed">{item.text}</p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
-      {/* Results */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-      >
-        <Tabs defaultValue="charts" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="charts">Charts</TabsTrigger>
-            <TabsTrigger value="insights">Insights</TabsTrigger>
-            <TabsTrigger value="raw-data">Raw Data</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="charts" className="space-y-4">
             <div className="grid lg:grid-cols-2 gap-6">
-              {/* Main Chart */}
-              <Card>
+              {/* Stress Analysis (Donut Chart) */}
+              <Card className="shadow-sm">
                 <CardHeader>
-                  <CardTitle>
-                    {indicators.find(i => i.value === selectedIndicator)?.label} - {regions.find(r => r.value === selectedRegion)?.label}
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4 text-primary" />
+                    Groundwater Stress Distribution
                   </CardTitle>
-                  <CardDescription>
-                    Trend analysis from {yearRange[0]} to {yearRange[1]}
-                  </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="h-64 bg-muted/20 rounded-lg flex items-center justify-center">
-                    {isLoading ? (
-                      <div className="flex items-center space-x-2">
-                        <RefreshCw className="h-6 w-6 animate-spin" />
-                        <span>Loading chart data...</span>
-                      </div>
-                    ) : (
-                      <div className="text-center text-muted-foreground">
-                        <BarChart3 className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                        <p>Chart visualization would appear here</p>
-                        <p className="text-sm">Connected to Recharts/Chart.js</p>
-                      </div>
-                    )}
-                  </div>
+                <CardContent className="h-[350px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={Object.entries(analysisData.stress.raw_counts).map(([name, value]) => ({ 
+                          name: name.replace('_', ' ').toUpperCase(), 
+                          value: Number(value) 
+                        }))}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={70}
+                        outerRadius={100}
+                        paddingAngle={4}
+                        dataKey="value"
+                      >
+                        {Object.entries(analysisData.stress.raw_counts).map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                      />
+                      <Legend verticalAlign="bottom" height={36}/>
+                    </PieChart>
+                  </ResponsiveContainer>
                 </CardContent>
               </Card>
 
-              {/* Category Breakdown */}
-              <Card>
+              {/* Sectoral Consumption (Horizontal Bar) */}
+              <Card className="shadow-sm">
                 <CardHeader>
-                  <CardTitle>Assessment Categories</CardTitle>
-                  <CardDescription>
-                    Distribution of groundwater assessment units
-                  </CardDescription>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Layers className="h-4 w-4 text-primary" />
+                    Sectoral Usage Percentages
+                  </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {Object.entries(mockData.categories).map(([category, percentage]) => (
-                      <div key={category} className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="capitalize font-medium">{category.replace(/([A-Z])/g, ' $1')}</span>
-                          <span>{percentage}%</span>
-                        </div>
-                        <div className="w-full bg-muted rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full ${
-                              category === 'safe' ? 'bg-green-500' :
-                              category === 'semicritical' ? 'bg-yellow-500' :
-                              category === 'critical' ? 'bg-orange-500' :
-                              'bg-red-500'
-                            }`}
-                            style={{ width: `${percentage}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <CardContent className="h-[350px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      layout="vertical"
+                      data={Object.entries(analysisData.consumption.percentages).map(([name, value]) => ({ 
+                        name: name.toUpperCase(), 
+                        percentage: Number(value) 
+                      }))}
+                      margin={{ left: 50, right: 30 }}
+                    >
+                      <XAxis type="number" unit="%" hide />
+                      <YAxis dataKey="name" type="category" width={100} axisLine={false} tickLine={false} />
+                      <Tooltip cursor={{ fill: 'transparent' }} />
+                      <Bar 
+                        dataKey="percentage" 
+                        fill="#6366f1" 
+                        radius={[0, 10, 10, 0]} 
+                        barSize={32}
+                        label={{ position: 'right', formatter: (v: any) => `${v}%`, fontSize: 12 }} 
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Recharge Efficiency (Stacked Bar) */}
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Droplets className="h-4 w-4 text-primary" />
+                    Recharge Composition Mix
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="h-[350px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={[{
+                        name: 'Recharge Sources',
+                        Natural: analysisData.recharge.recharge_mix.natural,
+                        Artificial: analysisData.recharge.recharge_mix.artificial
+                      }]}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="Natural" stackId="a" fill="#10b981" radius={[0, 0, 0, 0]} />
+                      <Bar dataKey="Artificial" stackId="a" fill="#3b82f6" radius={[10, 10, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Command Disparity (Comparison Bar) */}
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-primary" />
+                    Command vs Non-Command SOE
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="h-[350px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={[
+                        { name: 'Command Area', value: Number(analysisData.disparity.extraction_levels.command).toFixed(1) },
+                        { name: 'Non-Command', value: Number(analysisData.disparity.extraction_levels.non_command).toFixed(1) }
+                      ]}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <XAxis dataKey="name" />
+                      <YAxis unit="%" />
+                      <Tooltip />
+                      <Bar 
+                         dataKey="value" 
+                         fill="#ef4444" 
+                         radius={[10, 10, 0, 0]} 
+                         barSize={60}
+                         label={{ position: 'top', formatter: (v: any) => `${v}%` }}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </CardContent>
               </Card>
             </div>
-
-            {comparisonMode && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Regional Comparison</CardTitle>
-                  <CardDescription>
-                    Side-by-side comparison between {regions.find(r => r.value === selectedRegion)?.label} and {regions.find(r => r.value === comparisonRegion)?.label}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-64 bg-muted/20 rounded-lg flex items-center justify-center">
-                    <div className="text-center text-muted-foreground">
-                      <BarChart3 className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                      <p>Comparison chart would appear here</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          <TabsContent value="insights" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Key Insights</CardTitle>
-                <CardDescription>
-                  AI-generated insights from your analysis
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="p-4 bg-muted/20 rounded-lg">
-                    <h4 className="font-medium mb-2">Trend Analysis</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Water table depth in {regions.find(r => r.value === selectedRegion)?.label} shows a declining trend from {yearRange[0]} to {yearRange[1]}, with an average decrease of 0.8 meters per year.
-                    </p>
-                  </div>
-                  <div className="p-4 bg-muted/20 rounded-lg">
-                    <h4 className="font-medium mb-2">Critical Observation</h4>
-                    <p className="text-sm text-muted-foreground">
-                      The data indicates accelerated depletion in the last 3 years, primarily in the western districts. Immediate intervention is recommended.
-                    </p>
-                  </div>
-                  <div className="p-4 bg-muted/20 rounded-lg">
-                    <h4 className="font-medium mb-2">Seasonal Pattern</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Monsoon recharge patterns show 15% variability, suggesting climate change impacts on groundwater replenishment cycles.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="raw-data" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Raw Data Table</CardTitle>
-                <CardDescription>
-                  Downloadable dataset for your analysis
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Data table would be rendered here</p>
-                  <p className="text-sm">Connected to backend data source</p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </motion.div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="empty"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center justify-center py-24 text-center border-2 border-dashed border-border rounded-3xl"
+          >
+            <div className="bg-primary/10 rounded-full p-8 mb-6">
+              <BarChart3 className="h-16 w-16 text-primary animate-pulse" />
+            </div>
+            <h3 className="text-2xl font-bold mb-3">Insights Are Waiting</h3>
+            <p className="text-muted-foreground max-w-md mb-8 leading-relaxed">
+              Select a region and assessment period. INGRES AI will generate a comprehensive 4-point analysis of groundwater health.
+            </p>
+            <Button onClick={handleAnalyze} size="lg" className="px-10 h-14 rounded-full text-lg font-medium shadow-xl shadow-primary/20 hover:scale-105 transition-transform">
+              Begin Analysis
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

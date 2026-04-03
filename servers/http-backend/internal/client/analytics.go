@@ -47,3 +47,22 @@ func CallAnalyticsService(path string, req AnalyticsRequest) (map[string]interfa
 	}
 	return ar, nil
 }
+
+func FetchLocations() (map[string]interface{}, error) {
+	url := "http://localhost:8000/analyze/locations"
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("analytics service returned %d", resp.StatusCode)
+	}
+
+	var ar map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&ar); err != nil {
+		return nil, err
+	}
+	return ar, nil
+}

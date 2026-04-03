@@ -108,7 +108,7 @@ export const Hero = ({
           
 
           <Button
-            onClick={() => navigate("/login")}
+            onClick={() => navigate("/dashboard")}
             size="lg"
             className="group border-2 border-white/30 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 font-semibold px-8 py-6 text-lg rounded-xl transition-smooth hover-lift"
           >

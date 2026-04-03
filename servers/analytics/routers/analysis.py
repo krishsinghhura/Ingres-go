@@ -92,3 +92,11 @@ def analyze_disparity(request: RawDataRequest):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/locations")
+def get_locations():
+    try:
+        data = ingres_api.fetch_locations()
+        return {"status": "success", "locations": data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
