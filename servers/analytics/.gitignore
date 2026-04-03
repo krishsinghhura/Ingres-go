@@ -3,3 +3,5 @@
 /__pycache__
 /models/__pycache__
 /routers/__pycache__
+/processors/__pycache__
+/processors/core/__pycache__
